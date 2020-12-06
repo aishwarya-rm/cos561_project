@@ -43,7 +43,7 @@ class NetworkTrace:
                 for pkt in self.pkts:
                         srcIPs[pkt[sc.IP].src] += 1
                 sortedIPs = sorted(srcIPs.items(), key=operator.itemgetter(1), reverse=True)
-                for (ip, _) in sortedIPs[:3]:
+                for (ip, _) in sortedIPs:
                         print("checking out " + ip)
                         p1 = subprocess.Popen(['nslookup', ip], stdout=subprocess.PIPE)
                         p2 = subprocess.Popen(['grep', '-e', 'twitch', '-e', 'ttvnw'], stdin=p1.stdout, stdout=subprocess.PIPE)
