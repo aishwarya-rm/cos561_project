@@ -22,33 +22,40 @@ def getTS(pkt):
 			return option[1]
 
 # Sniff packets in general
-pkts = sniff(filter="tcp", count=10000)
-currTime = int(time.time())
+# Use timeout, not count
+pkts = sniff(filter="tcp", timeout=600)
+throttle = 500
+
 # This writes to a file, it's unintelligible
-#wrpcap("data/sniff_{0}.cap".format(currTime), pkts)
+wrpcap("data/sniff_{0}.cap".format(throttle), pkts)
 
 nflxIPs = []
+otherIPs = []
 print("Analyzing...")
 srcIPs = collections.defaultdict(int)
 for pkt in pkts:
 	srcIPs[pkt[IP].src] += 1
+
 sortedIPs = sorted(srcIPs.items(), key=operator.itemgetter(1), reverse=True)
-# for (ip, _) in sortedIPs[:3]:
 for (ip, _) in sortedIPs:
 	print("checking out " + ip)
 	p1 = subprocess.Popen(['nslookup', ip], stdout=subprocess.PIPE)
-	p2 = subprocess.Popen(['grep', '-e', 'netflix', '-e', 'nflx', '-e', 'nwax', '-e', 'netflix2'], stdin=p1.stdout, stdout=subprocess.PIPE)
+	#p1 = subprocess.Popen(['whois', ip], stdout=subprocess.PIPE)
+	p2 = subprocess.Popen(['grep', '-e', 'netflix', '-e', 'nflx', '-e', 'nwax', '-e', 'netflix2', '-e', 'Netflix', '-e', 'aws'], stdin=p1.stdout,
+						  stdout=subprocess.PIPE)
 	o = p2.communicate()
 	if len(o[0]) > 0:
 		nflxIPs.append(ip)
-nflxPkts = [pkt for pkt in pkts if pkt[IP].src in nflxIPs]
-#firstTS = getTS(pkts[0])[1]
-#data = [{'len': x[IP].len, 'ts': getTS(x)[1]} for x in pkts]
-#print(str(data))
-#wrpcap("data/analyze_{0}.cap".format(currTime), nflxPkts)
+	else:
+		otherIPs.append(ip)
 
-firstTS = getTS(nflxPkts[0])[1]
+nflxPkts = [pkt for pkt in pkts if pkt[IP].src in nflxIPs]
+otherPkts = [pkt for pkt in pkts if pkt[IP].src in otherIPs]
+
+
+#firstTS = getTS(nflxPkts[0])[1]
 data = [{'len': x[IP].len, 'ts': getTS(x)[1]} for x in nflxPkts]
-print(str(data))
-with open("sniff_data.json", 'w') as oFile:
-	oFile.write(json.dumps(data))
+
+#with open("netflix_data_4mb.json", 'w') as oFile:
+#	oFile.write(json.dumps(data))
+
